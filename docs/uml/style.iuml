@@ -46,3 +46,30 @@ skinparam folder {
   BackgroundColor #E8F5E9
   BorderColor #2E7D32
 }
+skinparam sequence {
+  ParticipantBackgroundColor #E3F2FD
+  ParticipantBorderColor #1565C0
+  LifeLineBorderColor #90A4AE
+  LifeLineBackgroundColor #BBDEFB
+  BoxBackgroundColor #FAFAFA
+  BoxBorderColor #90A4AE
+  GroupBorderColor #78909C
+  GroupBackgroundColor #ECEFF1
+  ReferenceBackgroundColor #FAFAFA
+}
+skinparam participant {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam control {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam queue {
+  BackgroundColor #FFF3E0
+  BorderColor #E65100
+}
+skinparam collections {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}

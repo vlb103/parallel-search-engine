@@ -1,0 +1,45 @@
+@startuml seq_search_rest
+!include style.iuml
+autonumber
+title UC4: Пошук за ключовими словами (CLI, REST)
+
+actor "Користувач" as User
+participant "CLI\n./search" as Cli
+box "search_server" #FAFAFA
+  participant "Server\n(accept)" as Server
+  queue "ThreadPool\nклієнтів" as Pool
+  participant "Worker" as Worker
+  participant "Tokenizer" as Tokenizer
+  participant "SearchEngine" as Engine
+  participant "ConcurrentIndex" as Index
+end box
+
+User -> Cli : ./search "query"
+Cli -> Server : TCP connect
+Server -> Pool : Submit(HandleClient)
+Pool -> Worker : задача
+activate Worker
+Cli -> Worker : POST /api/search\n{"query":{"text":"..","mode":"keyword"}}
+Worker -> Worker : ReadRequest(), розбір JSON
+
+alt mode не "keyword" або невалідний JSON
+  Worker --> Cli : 400 {"error":".."}
+else коректний запит
+  Worker -> Tokenizer : Tokenize(text)
+  Tokenizer --> Worker : terms
+  Worker -> Engine : Search(terms)
+  activate Engine
+  loop для кожного унікального терміна
+    Engine -> Index : Find(term)
+    note right : спільний замок сегмента:\nчитачі не блокують одне одного
+    Index --> Engine : копія postings
+  end
+  Engine -> Engine : сума TF-IDF,\n10 найкращих
+  Engine -> Engine : MakeSnippet() для кожного
+  Engine --> Worker : vector<SearchResult>
+  deactivate Engine
+  Worker --> Cli : 200 {"results":[..],"time_ms":..}
+end
+deactivate Worker
+Cli --> User : нумерований список результатів
+@enduml

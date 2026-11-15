@@ -1,0 +1,38 @@
+@startuml seq_health
+!include style.iuml
+autonumber
+title UC1: Перевірити стан системи
+
+actor "Адміністратор" as Admin
+participant "curl" as Client
+box "search_server" #FAFAFA
+  participant "Server\n(accept)" as Server
+  queue "ThreadPool\nклієнтів" as Pool
+  participant "Worker" as Worker
+  participant "OllamaClient" as OllamaClient
+end box
+participant "Ollama" as Ollama
+
+Admin -> Client : curl localhost:8080/api/health
+Client -> Server : TCP connect
+Server -> Pool : Submit(HandleClient)
+Pool -> Worker : задача
+activate Worker
+Worker -> Worker : ReadRequest()\nGET /api/health
+Worker -> OllamaClient : IsAvailable()
+activate OllamaClient
+OllamaClient -> Ollama : GET /api/tags
+alt Ollama працює
+  Ollama --> OllamaClient : 200
+  OllamaClient --> Worker : true
+  Worker --> Client : 200 {"status":"ok","ollama":true}
+else Ollama недоступна
+  Ollama --> OllamaClient : помилка з'єднання
+  OllamaClient --> Worker : false
+  Worker --> Client : 200 {"status":"ok","ollama":false}
+end
+deactivate OllamaClient
+Worker -> Worker : close(fd)
+deactivate Worker
+Client --> Admin : відповідь JSON
+@enduml

@@ -1,0 +1,30 @@
+@startuml seq_stats
+!include style.iuml
+autonumber
+title UC3: Переглянути статистику індексу
+
+actor "Адміністратор" as Admin
+participant "curl" as Client
+box "search_server" #FAFAFA
+  participant "Server\n(accept)" as Server
+  queue "ThreadPool\nклієнтів" as Pool
+  participant "Worker" as Worker
+  participant "SearchEngine" as Engine
+end box
+
+Admin -> Client : curl localhost:8080/api/stats
+Client -> Server : TCP connect
+Server -> Pool : Submit(HandleClient)
+Pool -> Worker : задача
+activate Worker
+Worker -> Worker : ReadRequest()\nGET /api/stats
+Worker -> Engine : Stats()
+activate Engine
+Engine -> Engine : прочитати атомарні лічильники\ndocuments_indexed_, build_time_ms_, threads_used_
+note right : без замків: std::atomic
+Engine --> Worker : IndexStats
+deactivate Engine
+Worker --> Client : 200 {"documents":..,\n"index_build_time_ms":..,"threads_used":..}
+deactivate Worker
+Client --> Admin : відповідь JSON
+@enduml

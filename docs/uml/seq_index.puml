@@ -1,0 +1,58 @@
+@startuml seq_index
+!include style.iuml
+autonumber
+title UC2: Побудувати індекс
+
+actor "Адміністратор" as Admin
+participant "curl" as Client
+box "search_server" #FAFAFA
+  participant "Server\n(accept)" as Server
+  queue "ThreadPool\nклієнтів" as Pool
+  participant "Worker" as Worker
+  participant "SearchEngine" as Engine
+  queue "ThreadPool\nіндексації" as IndexPool
+  collections "IndexWorker\n(N потоків)" as IndexWorker
+  participant "ConcurrentIndex" as Index
+end box
+
+Admin -> Client : POST /api/index {"threads": N}
+Client -> Server : TCP connect
+Server -> Pool : Submit(HandleClient)
+Pool -> Worker : задача
+activate Worker
+Worker -> Worker : ReadRequest()\nперевірка 1 <= N <= 256
+Worker -> Engine : BuildIndex(N)
+activate Engine
+
+alt побудова вже триває (build_mutex_.try_lock() не вдався)
+  Engine --> Worker : nullopt
+  Worker --> Client : 409 {"error":"indexing already in progress"}
+else build_mutex_ захоплено
+  Engine -> Index : Clear()
+  Engine -> Engine : зібрати і відсортувати\nсписок файлів (documents_)
+  Engine -> IndexPool ** : ThreadPool(N)
+  loop для кожного документа
+    Engine -> IndexPool : Submit(IndexDocument(doc_id))
+  end
+  par N воркерів паралельно
+    IndexPool -> IndexWorker : задача
+    activate IndexWorker
+    IndexWorker -> IndexWorker : прочитати файл, Tokenize(),\nпорахувати tf у локальній мапі
+    loop для кожного терміна документа
+      IndexWorker -> Index : Add(term, {doc_id, tf})
+      note right : ексклюзивний замок\nлише одного сегмента
+    end
+    IndexWorker -> IndexWorker : ++documents_indexed_ (atomic)
+    deactivate IndexWorker
+  end
+  Engine -> IndexPool : Shutdown()
+  note right of Engine : чекає, доки черга\nспорожніє
+  IndexPool --> Engine : усі документи оброблено
+  Engine -> Engine : зберегти build_time_ms_,\nthreads_used_ (atomic)
+  Engine --> Worker : IndexStats
+  Worker --> Client : 200 {"status":"ok",\n"documents_indexed":..,"time_ms":..}
+end
+deactivate Engine
+deactivate Worker
+Client --> Admin : відповідь JSON
+@enduml

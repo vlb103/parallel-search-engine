@@ -1,0 +1,60 @@
+@startuml seq_search_ws
+!include style.iuml
+autonumber
+title UC5: Пошук з розширенням запиту (Web UI, WebSocket)
+
+actor "Користувач" as User
+participant "Web UI" as Ui
+box "search_server" #FAFAFA
+  participant "Server\n(accept)" as Server
+  queue "ThreadPool\nклієнтів" as Pool
+  participant "Worker" as Worker
+  participant "WebSocket" as Ws
+  participant "OllamaClient" as OllamaClient
+  participant "SearchEngine" as Engine
+  participant "ConcurrentIndex" as Index
+end box
+participant "Ollama" as Ollama
+
+User -> Ui : вводить запит
+Ui -> Server : TCP connect
+Server -> Pool : Submit(HandleClient)
+Pool -> Worker : задача
+activate Worker
+Ui -> Worker : GET /ws/search (Upgrade: websocket)
+Worker -> Ws : WsHandshake()
+Ws --> Ui : 101 Switching Protocols
+Ui -> Worker : {"query":".."}
+Worker -> Ws : WsReadText()
+
+Worker -> OllamaClient : Expand(query)
+activate OllamaClient
+note right of OllamaClient : generate_mutex_:\nодин запит до LLM за раз,\nінші потоки чекають
+OllamaClient -> Ollama : POST /api/generate
+alt Ollama відповіла
+  Ollama --> OllamaClient : {"response":"{\"keywords\":[..]}"}
+  OllamaClient --> Worker : expanded_terms
+else Ollama недоступна
+  OllamaClient --> Worker : порожній список
+end
+deactivate OllamaClient
+Worker -> Ws : WsSendText()
+Ws --> Ui : {"stage":"query_expansion",\n"data":{"original":..,"expanded_terms":[..]}}
+
+Worker -> Engine : Search(терміни запиту + розширені)
+activate Engine
+loop для кожного терміна
+  Engine -> Index : Find(term)
+  Index --> Engine : копія postings
+end
+Engine --> Worker : vector<SearchResult>
+deactivate Engine
+Worker -> Ws : WsSendText()
+Ws --> Ui : {"stage":"keyword_search",\n"data":{"results":[..],"time_ms":..}}
+
+Worker -> Ws : WsSendText()
+Ws --> Ui : {"stage":"done"}
+Ui -> Worker : close
+deactivate Worker
+Ui --> User : підсвічені етапи,\nрозширені терміни, результати
+@enduml
