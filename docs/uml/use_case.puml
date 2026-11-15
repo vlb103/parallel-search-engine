@@ -1,0 +1,30 @@
+@startuml use_case
+left to right direction
+!include style.iuml
+skinparam actorStyle awesome
+
+actor "Користувач" as User
+actor "Адміністратор" as Admin
+actor "Ollama" as Ollama <<system>>
+
+rectangle "Пошукова система" {
+  usecase "UC1: Перевірити стан системи" as UC1
+  usecase "UC2: Побудувати індекс\n(задати кількість потоків)" as UC2
+  usecase "UC3: Переглянути статистику індексу" as UC3
+  usecase "UC4: Пошук за ключовими словами\n(CLI, REST)" as UC4
+  usecase "UC5: Пошук з розширенням запиту\nі стрімінгом етапів (Web UI, WebSocket)" as UC5
+  usecase "Розширити запит через LLM" as Expand #E8F5E9;line:2E7D32
+  usecase "Знайти документи в індексі" as Find #E8F5E9;line:2E7D32
+}
+
+Admin --> UC1
+Admin --> UC2
+Admin --> UC3
+User --> UC4
+User --> UC5
+UC4 ..> Find : <<include>>
+UC5 ..> Expand : <<include>>
+UC5 ..> Find : <<include>>
+UC1 --> Ollama
+Expand --> Ollama
+@enduml

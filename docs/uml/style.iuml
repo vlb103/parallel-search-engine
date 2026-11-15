@@ -1,0 +1,22 @@
+' Спільний стиль для всіх діаграм.
+skinparam dpi 200
+skinparam shadowing false
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 13
+skinparam ArrowColor #455A64
+skinparam ArrowThickness 1.2
+skinparam actor {
+  BackgroundColor #FFF3E0
+  BorderColor #E65100
+}
+skinparam usecase {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam rectangle {
+  BackgroundColor #FAFAFA
+  BorderColor #90A4AE
+  RoundCorner 16
+  FontSize 15
+  FontStyle bold
+}
