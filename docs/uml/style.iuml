@@ -20,3 +20,29 @@ skinparam rectangle {
   FontSize 15
   FontStyle bold
 }
+skinparam class {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+  HeaderBackgroundColor #BBDEFB
+  StereotypeFontColor #546E7A
+}
+skinparam note {
+  BackgroundColor #FFFDE7
+  BorderColor #F9A825
+}
+skinparam node {
+  BackgroundColor #F5F5F5
+  BorderColor #607D8B
+}
+skinparam artifact {
+  BackgroundColor #E3F2FD
+  BorderColor #1565C0
+}
+skinparam database {
+  BackgroundColor #E8F5E9
+  BorderColor #2E7D32
+}
+skinparam folder {
+  BackgroundColor #E8F5E9
+  BorderColor #2E7D32
+}
