@@ -12,6 +12,28 @@
 - Стрімінг етапів пошуку через WebSocket.
 - Два клієнти: консольний `./search "запит"` і веб-сторінка.
 
+## Запуск
+
+Потрібен Docker з Compose v2.
+
+```bash
+docker compose up --build
+```
+
+Піднімаються два сервіси: `server` (пошуковий сервер на порту 8080) і `ollama` (локальна LLM). Під час першого запуску Ollama завантажує модель `llama3.2:1b` (близько 1,3 ГБ) у том `ollama`, тому наступні запуски швидкі. Іншу модель можна задати змінною `OLLAMA_MODEL`:
+
+```bash
+OLLAMA_MODEL=llama3.2:3b docker compose up --build
+```
+
+Перевірка готовності:
+
+```bash
+curl -i http://localhost:8080/api/health
+```
+
+Зупинка: `Ctrl+C` або `docker compose down`.
+
 ## API
 
 Усі відповіді в JSON.
