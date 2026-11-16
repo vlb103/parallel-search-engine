@@ -1,6 +1,7 @@
 #include <cstdlib>
-#include <iostream>
 #include <string>
+
+#include "server.h"
 
 namespace {
 
@@ -13,6 +14,7 @@ std::string EnvOr(const char* name, const std::string& fallback) {
 
 int main() {
   const int port = std::stoi(EnvOr("PORT", "8080"));
-  std::cout << "search_server: port " << port << std::endl;
-  return 0;
+
+  Server server(port);
+  server.Run();
 }
