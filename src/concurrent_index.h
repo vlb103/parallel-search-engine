@@ -38,6 +38,7 @@ class ConcurrentIndex {
   };
 
   static size_t Hash(const std::string& term);
+  void Rehash(Segment* segment);
   size_t BucketOf(const Segment& segment, size_t hash) const;
 
   std::vector<Segment> segments_;

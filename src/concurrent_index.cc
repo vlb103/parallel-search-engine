@@ -23,14 +23,17 @@ void ConcurrentIndex::Add(const std::string& term, Posting posting) {
   Segment& segment = segments_[hash % segments_.size()];
   std::unique_lock<std::shared_mutex> lock(segment.mutex);
 
-  std::unique_ptr<Node>& head = segment.buckets[BucketOf(segment, hash)];
-  for (Node* node = head.get(); node != nullptr; node = node->next.get()) {
+  for (Node* node = segment.buckets[BucketOf(segment, hash)].get();
+       node != nullptr; node = node->next.get()) {
     if (node->hash == hash && node->term == term) {
       node->postings.push_back(posting);
       return;
     }
   }
 
+  if (segment.term_count >= segment.buckets.size()) Rehash(&segment);
+
+  std::unique_ptr<Node>& head = segment.buckets[BucketOf(segment, hash)];
   auto node = std::make_unique<Node>();
   node->term = term;
   node->hash = hash;
@@ -38,6 +41,21 @@ void ConcurrentIndex::Add(const std::string& term, Posting posting) {
   node->next = std::move(head);
   head = std::move(node);
   ++segment.term_count;
+}
+
+void ConcurrentIndex::Rehash(Segment* segment) {
+  std::vector<std::unique_ptr<Node>> bigger(segment->buckets.size() * 2);
+  for (std::unique_ptr<Node>& head : segment->buckets) {
+    while (head != nullptr) {
+      std::unique_ptr<Node> node = std::move(head);
+      head = std::move(node->next);
+      std::unique_ptr<Node>& slot =
+          bigger[(node->hash / segments_.size()) % bigger.size()];
+      node->next = std::move(slot);
+      slot = std::move(node);
+    }
+  }
+  segment->buckets = std::move(bigger);
 }
 
 std::vector<Posting> ConcurrentIndex::Find(const std::string& term) const {
