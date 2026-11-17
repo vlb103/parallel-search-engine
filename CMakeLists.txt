@@ -17,3 +17,11 @@ add_executable(search_server
   src/thread_pool.cc)
 target_link_libraries(search_server PRIVATE
   Threads::Threads nlohmann_json::nlohmann_json)
+
+add_executable(index_race_test
+  tests/index_race_test.cc
+  src/concurrent_index.cc
+  src/thread_pool.cc)
+target_compile_options(index_race_test PRIVATE -fsanitize=thread -g)
+target_link_options(index_race_test PRIVATE -fsanitize=thread)
+target_link_libraries(index_race_test PRIVATE Threads::Threads)

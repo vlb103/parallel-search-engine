@@ -5,7 +5,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /src
 COPY CMakeLists.txt .
 COPY src src
+COPY tests tests
 RUN cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+
+FROM build AS test
+CMD ["sh", "-c", "setarch $(uname -m) -R ./build/index_race_test"]
 
 FROM debian:bookworm-slim
 WORKDIR /app
