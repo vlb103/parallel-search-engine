@@ -13,6 +13,7 @@ add_executable(search_server
   src/main.cc
   src/server.cc
   src/http.cc
+  src/tokenizer.cc
   src/concurrent_index.cc
   src/thread_pool.cc)
 target_link_libraries(search_server PRIVATE
