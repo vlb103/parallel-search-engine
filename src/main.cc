@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <cstdlib>
 #include <string>
 
@@ -14,7 +15,8 @@ std::string EnvOr(const char* name, const std::string& fallback) {
 
 int main() {
   const int port = std::stoi(EnvOr("PORT", "8080"));
+  const size_t threads = std::stoul(EnvOr("SERVER_THREADS", "16"));
 
-  Server server(port);
+  Server server(port, threads);
   server.Run();
 }

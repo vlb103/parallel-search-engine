@@ -3,6 +3,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 #include <cstdint>
@@ -14,10 +15,13 @@
 #include <string>
 
 #include "http.h"
+#include "thread_pool.h"
 
 namespace {
 
 using Json = nlohmann::json;
+
+const int kReceiveTimeoutSeconds = 30;
 
 void SendJson(int fd, int status, const Json& body) {
   SendResponse(fd, status, "application/json",
@@ -30,7 +34,8 @@ void SendError(int fd, int status, const std::string& message) {
 
 }  // namespace
 
-Server::Server(int port) : port_(port) {}
+Server::Server(int port, size_t thread_count)
+    : port_(port), thread_count_(thread_count) {}
 
 void Server::Run() {
   const int listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -49,15 +54,21 @@ void Server::Run() {
   }
   std::cout << "listening on port " << port_ << std::endl;
 
+  ThreadPool pool(thread_count_);
   while (true) {
     const int client = accept(listener, nullptr, nullptr);
     if (client < 0) continue;
-    HandleClient(client);
-    close(client);
+    pool.Submit([this, client] {
+      HandleClient(client);
+      close(client);
+    });
   }
 }
 
 void Server::HandleClient(int fd) {
+  const timeval timeout{kReceiveTimeoutSeconds, 0};
+  setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+
   const std::optional<HttpRequest> request = ReadRequest(fd);
   if (!request) return;
 
