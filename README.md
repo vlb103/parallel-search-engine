@@ -26,6 +26,14 @@ python scripts/generate_dataset.py
 
 Кожен документ належить до однієї з десяти тем (space, medicine, finance, sport, music, cooking, climate, computing, history, travel) і складається з тематичних слів, загальновживаних англійських слів і псевдослів із розподілом за законом Ципфа. Генерація детермінована: з тим самим `--seed` виходять ті самі файли.
 
+Перевірка обсягу:
+
+```bash
+python scripts/check_dataset.py data
+```
+
+Скрипт друкує кількість файлів і обсяг і завершується з кодом 1, якщо даних замало.
+
 ## Запуск
 
 Потрібен Docker з Compose v2.
