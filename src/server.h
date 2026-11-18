@@ -16,6 +16,7 @@ class Server {
   void HandleClient(int fd);
   void HandleHealth(int fd);
   void HandleIndex(int fd, const HttpRequest& request);
+  void HandleStats(int fd);
 
   SearchEngine* engine_;
   int port_;

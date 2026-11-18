@@ -80,6 +80,8 @@ void Server::HandleClient(int fd) {
       HandleHealth(fd);
     } else if (method == "POST" && path == "/api/index") {
       HandleIndex(fd, *request);
+    } else if (method == "GET" && path == "/api/stats") {
+      HandleStats(fd);
     } else {
       SendError(fd, 404, "not found");
     }
@@ -110,4 +112,12 @@ void Server::HandleIndex(int fd, const HttpRequest& request) {
            {{"status", "ok"},
             {"documents_indexed", stats->documents},
             {"time_ms", stats->build_time_ms}});
+}
+
+void Server::HandleStats(int fd) {
+  const IndexStats stats = engine_->Stats();
+  SendJson(fd, 200,
+           {{"documents", stats.documents},
+            {"index_build_time_ms", stats.build_time_ms},
+            {"threads_used", stats.threads_used}});
 }
