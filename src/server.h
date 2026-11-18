@@ -3,16 +3,21 @@
 
 #include <cstddef>
 
+#include "http.h"
+#include "search_engine.h"
+
 class Server {
  public:
-  Server(int port, size_t thread_count);
+  Server(SearchEngine* engine, int port, size_t thread_count);
 
   void Run();
 
  private:
   void HandleClient(int fd);
   void HandleHealth(int fd);
+  void HandleIndex(int fd, const HttpRequest& request);
 
+  SearchEngine* engine_;
   int port_;
   size_t thread_count_;
 };

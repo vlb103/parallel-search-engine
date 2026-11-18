@@ -22,6 +22,7 @@ namespace {
 using Json = nlohmann::json;
 
 const int kReceiveTimeoutSeconds = 30;
+const int64_t kMaxIndexThreads = 256;
 
 void SendJson(int fd, int status, const Json& body) {
   SendResponse(fd, status, "application/json",
@@ -34,8 +35,8 @@ void SendError(int fd, int status, const std::string& message) {
 
 }  // namespace
 
-Server::Server(int port, size_t thread_count)
-    : port_(port), thread_count_(thread_count) {}
+Server::Server(SearchEngine* engine, int port, size_t thread_count)
+    : engine_(engine), port_(port), thread_count_(thread_count) {}
 
 void Server::Run() {
   const int listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -72,13 +73,41 @@ void Server::HandleClient(int fd) {
   const std::optional<HttpRequest> request = ReadRequest(fd);
   if (!request) return;
 
-  if (request->method == "GET" && request->path == "/api/health") {
-    HandleHealth(fd);
-  } else {
-    SendError(fd, 404, "not found");
+  const std::string& method = request->method;
+  const std::string& path = request->path;
+  try {
+    if (method == "GET" && path == "/api/health") {
+      HandleHealth(fd);
+    } else if (method == "POST" && path == "/api/index") {
+      HandleIndex(fd, *request);
+    } else {
+      SendError(fd, 404, "not found");
+    }
+  } catch (const Json::exception& error) {
+    SendError(fd, 400, error.what());
   }
 }
 
 void Server::HandleHealth(int fd) {
   SendJson(fd, 200, {{"status", "ok"}, {"ollama", false}});
+}
+
+void Server::HandleIndex(int fd, const HttpRequest& request) {
+  const Json body = Json::parse(request.body);
+  const Json& threads = body.at("threads");
+  if (!threads.is_number_integer() || threads.get<int64_t>() < 1 ||
+      threads.get<int64_t>() > kMaxIndexThreads) {
+    SendError(fd, 400, "threads must be an integer between 1 and 256");
+    return;
+  }
+  const std::optional<IndexStats> stats =
+      engine_->BuildIndex(static_cast<size_t>(threads.get<int64_t>()));
+  if (!stats) {
+    SendError(fd, 409, "indexing already in progress");
+    return;
+  }
+  SendJson(fd, 200,
+           {{"status", "ok"},
+            {"documents_indexed", stats->documents},
+            {"time_ms", stats->build_time_ms}});
 }

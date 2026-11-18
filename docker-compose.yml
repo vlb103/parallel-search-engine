@@ -5,7 +5,10 @@ services:
     ports:
       - "8080:8080"
     environment:
+      DATA_DIR: /data
       SERVER_THREADS: 16
+    volumes:
+      - ./data:/data:ro
     depends_on:
       - ollama
 

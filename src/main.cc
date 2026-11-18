@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <string>
 
+#include "search_engine.h"
 #include "server.h"
 
 namespace {
@@ -17,6 +18,7 @@ int main() {
   const int port = std::stoi(EnvOr("PORT", "8080"));
   const size_t threads = std::stoul(EnvOr("SERVER_THREADS", "16"));
 
-  Server server(port, threads);
+  SearchEngine engine(EnvOr("DATA_DIR", "/data"));
+  Server server(&engine, port, threads);
   server.Run();
 }
