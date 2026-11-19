@@ -1,6 +1,7 @@
 #include "search_engine.h"
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <filesystem>
@@ -16,6 +17,8 @@
 namespace {
 
 const size_t kMaxResults = 10;
+const size_t kSnippetBefore = 60;
+const size_t kSnippetLength = 200;
 
 }  // namespace
 
@@ -106,7 +109,33 @@ std::vector<SearchResult> SearchEngine::Search(
 
   std::vector<SearchResult> results;
   for (size_t i = 0; i < count; ++i) {
-    results.push_back({documents_[ranked[i].first], ranked[i].second, ""});
+    const std::string& doc_id = documents_[ranked[i].first];
+    results.push_back({doc_id, ranked[i].second, MakeSnippet(doc_id, terms)});
   }
   return results;
+}
+
+std::string SearchEngine::MakeSnippet(
+    const std::string& doc_id, const std::vector<std::string>& terms) const {
+  std::ifstream file(data_dir_ + "/" + doc_id, std::ios::binary);
+  const std::string text((std::istreambuf_iterator<char>(file)),
+                         std::istreambuf_iterator<char>());
+
+  std::string lowered = text;
+  for (char& c : lowered) {
+    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  }
+  size_t position = std::string::npos;
+  for (const std::string& term : terms) {
+    position = std::min(position, lowered.find(term));
+  }
+  if (position == std::string::npos) position = 0;
+
+  const size_t begin =
+      position > kSnippetBefore ? position - kSnippetBefore : 0;
+  std::string snippet = text.substr(begin, kSnippetLength);
+  for (char& c : snippet) {
+    if (static_cast<unsigned char>(c) < ' ') c = ' ';
+  }
+  return snippet;
 }

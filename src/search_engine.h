@@ -36,6 +36,8 @@ class SearchEngine {
 
  private:
   void IndexDocument(uint32_t doc_id);
+  std::string MakeSnippet(const std::string& doc_id,
+                          const std::vector<std::string>& terms) const;
 
   const std::string data_dir_;
   ConcurrentIndex index_;
