@@ -12,6 +12,12 @@
 
 #include "concurrent_index.h"
 
+struct SearchResult {
+  std::string doc_id;
+  double score;
+  std::string snippet;
+};
+
 struct IndexStats {
   size_t documents;
   int64_t build_time_ms;
@@ -23,6 +29,8 @@ class SearchEngine {
   explicit SearchEngine(std::string data_dir);
 
   std::optional<IndexStats> BuildIndex(size_t threads);
+
+  std::vector<SearchResult> Search(const std::vector<std::string>& terms) const;
 
   IndexStats Stats() const;
 

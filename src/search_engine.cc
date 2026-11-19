@@ -2,14 +2,22 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <set>
 #include <unordered_map>
 #include <utility>
 
 #include "thread_pool.h"
 #include "tokenizer.h"
+
+namespace {
+
+const size_t kMaxResults = 10;
+
+}  // namespace
 
 SearchEngine::SearchEngine(std::string data_dir)
     : data_dir_(std::move(data_dir)) {}
@@ -70,4 +78,35 @@ void SearchEngine::IndexDocument(uint32_t doc_id) {
 
 IndexStats SearchEngine::Stats() const {
   return {documents_indexed_, build_time_ms_, threads_used_};
+}
+
+std::vector<SearchResult> SearchEngine::Search(
+    const std::vector<std::string>& terms) const {
+  std::shared_lock<std::shared_mutex> lock(documents_mutex_);
+  const double total = static_cast<double>(documents_.size());
+
+  std::unordered_map<uint32_t, double> scores;
+  const std::set<std::string> unique_terms(terms.begin(), terms.end());
+  for (const std::string& term : unique_terms) {
+    const std::vector<Posting> postings = index_.Find(term);
+    if (postings.empty()) continue;
+    const double idf = std::log(1.0 + total / postings.size());
+    for (const Posting& posting : postings) {
+      scores[posting.doc_id] += (1.0 + std::log(posting.tf)) * idf;
+    }
+  }
+
+  std::vector<std::pair<uint32_t, double>> ranked(scores.begin(), scores.end());
+  const size_t count = std::min(kMaxResults, ranked.size());
+  std::partial_sort(ranked.begin(), ranked.begin() + count, ranked.end(),
+                    [](const auto& a, const auto& b) {
+                      return a.second != b.second ? a.second > b.second
+                                                  : a.first < b.first;
+                    });
+
+  std::vector<SearchResult> results;
+  for (size_t i = 0; i < count; ++i) {
+    results.push_back({documents_[ranked[i].first], ranked[i].second, ""});
+  }
+  return results;
 }
