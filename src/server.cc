@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -13,9 +14,11 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include "http.h"
 #include "thread_pool.h"
+#include "tokenizer.h"
 
 namespace {
 
@@ -31,6 +34,22 @@ void SendJson(int fd, int status, const Json& body) {
 
 void SendError(int fd, int status, const std::string& message) {
   SendJson(fd, status, {{"error", message}});
+}
+
+Json ToJson(const std::vector<SearchResult>& results) {
+  Json items = Json::array();
+  for (const SearchResult& result : results) {
+    items.push_back({{"doc_id", result.doc_id},
+                     {"score", result.score},
+                     {"snippet", result.snippet}});
+  }
+  return items;
+}
+
+int64_t ElapsedMs(std::chrono::steady_clock::time_point start) {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::steady_clock::now() - start)
+      .count();
 }
 
 }  // namespace
@@ -80,6 +99,8 @@ void Server::HandleClient(int fd) {
       HandleHealth(fd);
     } else if (method == "POST" && path == "/api/index") {
       HandleIndex(fd, *request);
+    } else if (method == "POST" && path == "/api/search") {
+      HandleSearch(fd, *request);
     } else if (method == "GET" && path == "/api/stats") {
       HandleStats(fd);
     } else {
@@ -120,4 +141,23 @@ void Server::HandleStats(int fd) {
            {{"documents", stats.documents},
             {"index_build_time_ms", stats.build_time_ms},
             {"threads_used", stats.threads_used}});
+}
+
+void Server::HandleSearch(int fd, const HttpRequest& request) {
+  const Json body = Json::parse(request.body);
+  const Json& query = body.at("query");
+  const std::string text = query.is_object()
+                               ? query.at("text").get<std::string>()
+                               : query.get<std::string>();
+  const std::string mode = query.is_object() ? query.value("mode", "keyword")
+                                             : body.value("mode", "keyword");
+  if (mode != "keyword") {
+    SendError(fd, 400, "unsupported mode");
+    return;
+  }
+
+  const auto start = std::chrono::steady_clock::now();
+  const std::vector<SearchResult> results = engine_->Search(Tokenize(text));
+  SendJson(fd, 200,
+           {{"results", ToJson(results)}, {"time_ms", ElapsedMs(start)}});
 }
