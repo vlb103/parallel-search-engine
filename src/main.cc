@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <string>
 
+#include "ollama_client.h"
 #include "search_engine.h"
 #include "server.h"
 
@@ -19,6 +20,9 @@ int main() {
   const size_t threads = std::stoul(EnvOr("SERVER_THREADS", "16"));
 
   SearchEngine engine(EnvOr("DATA_DIR", "/data"));
-  Server server(&engine, port, threads);
+  OllamaClient ollama(EnvOr("OLLAMA_HOST", "ollama"),
+                      std::stoi(EnvOr("OLLAMA_PORT", "11434")),
+                      EnvOr("OLLAMA_MODEL", "llama3.2:1b"));
+  Server server(&engine, &ollama, port, threads);
   server.Run();
 }

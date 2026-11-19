@@ -54,8 +54,12 @@ int64_t ElapsedMs(std::chrono::steady_clock::time_point start) {
 
 }  // namespace
 
-Server::Server(SearchEngine* engine, int port, size_t thread_count)
-    : engine_(engine), port_(port), thread_count_(thread_count) {}
+Server::Server(SearchEngine* engine, OllamaClient* ollama, int port,
+               size_t thread_count)
+    : engine_(engine),
+      ollama_(ollama),
+      port_(port),
+      thread_count_(thread_count) {}
 
 void Server::Run() {
   const int listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -112,7 +116,7 @@ void Server::HandleClient(int fd) {
 }
 
 void Server::HandleHealth(int fd) {
-  SendJson(fd, 200, {{"status", "ok"}, {"ollama", false}});
+  SendJson(fd, 200, {{"status", "ok"}, {"ollama", ollama_->IsAvailable()}});
 }
 
 void Server::HandleIndex(int fd, const HttpRequest& request) {

@@ -4,11 +4,13 @@
 #include <cstddef>
 
 #include "http.h"
+#include "ollama_client.h"
 #include "search_engine.h"
 
 class Server {
  public:
-  Server(SearchEngine* engine, int port, size_t thread_count);
+  Server(SearchEngine* engine, OllamaClient* ollama, int port,
+         size_t thread_count);
 
   void Run();
 
@@ -20,6 +22,7 @@ class Server {
   void HandleStats(int fd);
 
   SearchEngine* engine_;
+  OllamaClient* ollama_;
   int port_;
   size_t thread_count_;
 };
