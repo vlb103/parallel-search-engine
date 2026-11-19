@@ -13,6 +13,7 @@ add_executable(search_server
   src/main.cc
   src/server.cc
   src/http.cc
+  src/ollama_client.cc
   src/search_engine.cc
   src/tokenizer.cc
   src/concurrent_index.cc
