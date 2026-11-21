@@ -6,15 +6,26 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <algorithm>
+#include <nlohmann/json.hpp>
 #include <utility>
 
 #include "http.h"
+#include "tokenizer.h"
 
 namespace {
 
+using Json = nlohmann::json;
+
 const int kTimeoutSeconds = 120;
 const size_t kReadChunkSize = 4096;
+const size_t kMaxExpandedTerms = 8;
 const char kHeaderEnd[] = "\r\n\r\n";
+const char kPrompt[] =
+    "You expand search queries for a keyword search engine over English "
+    "documents. Give 5 English keywords or synonyms related to the query. "
+    "Respond with JSON of the form {\"keywords\": [\"word1\", \"word2\"]}.\n"
+    "Query: ";
 
 int Connect(const std::string& host, int port) {
   addrinfo hints{};
@@ -48,6 +59,39 @@ OllamaClient::OllamaClient(std::string host, int port, std::string model)
 
 bool OllamaClient::IsAvailable() const {
   return Request("GET", "/api/tags", "").has_value();
+}
+
+std::vector<std::string> OllamaClient::Expand(const std::string& query) {
+  const Json body = {{"model", model_},
+                     {"prompt", kPrompt + query},
+                     {"stream", false},
+                     {"format", "json"},
+                     {"options", {{"temperature", 0}}}};
+  std::optional<std::string> response;
+  {
+    std::lock_guard<std::mutex> lock(generate_mutex_);
+    response =
+        Request("POST", "/api/generate",
+                body.dump(-1, ' ', false, Json::error_handler_t::replace));
+  }
+  if (!response) return {};
+
+  std::vector<std::string> terms;
+  try {
+    const std::string generated =
+        Json::parse(*response).at("response").get<std::string>();
+    for (const Json& keyword : Json::parse(generated).at("keywords")) {
+      for (const std::string& term : Tokenize(keyword.get<std::string>())) {
+        if (terms.size() < kMaxExpandedTerms &&
+            std::find(terms.begin(), terms.end(), term) == terms.end()) {
+          terms.push_back(term);
+        }
+      }
+    }
+  } catch (const Json::exception&) {
+    return {};
+  }
+  return terms;
 }
 
 std::optional<std::string> OllamaClient::Request(
