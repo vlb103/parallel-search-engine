@@ -20,6 +20,7 @@ class Server {
   void HandleIndex(int fd, const HttpRequest& request);
   void HandleSearch(int fd, const HttpRequest& request);
   void HandleStats(int fd);
+  void HandleWebSocket(int fd, const HttpRequest& request);
 
   SearchEngine* engine_;
   OllamaClient* ollama_;

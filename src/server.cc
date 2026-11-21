@@ -19,6 +19,7 @@
 #include "http.h"
 #include "thread_pool.h"
 #include "tokenizer.h"
+#include "websocket.h"
 
 namespace {
 
@@ -107,6 +108,8 @@ void Server::HandleClient(int fd) {
       HandleSearch(fd, *request);
     } else if (method == "GET" && path == "/api/stats") {
       HandleStats(fd);
+    } else if (method == "GET" && path == "/ws/search") {
+      HandleWebSocket(fd, *request);
     } else {
       SendError(fd, 404, "not found");
     }
@@ -164,4 +167,37 @@ void Server::HandleSearch(int fd, const HttpRequest& request) {
   const std::vector<SearchResult> results = engine_->Search(Tokenize(text));
   SendJson(fd, 200,
            {{"results", ToJson(results)}, {"time_ms", ElapsedMs(start)}});
+}
+
+void Server::HandleWebSocket(int fd, const HttpRequest& request) {
+  if (!WsHandshake(fd, request)) {
+    SendError(fd, 400, "websocket handshake expected");
+    return;
+  }
+  auto send = [fd](const Json& message) {
+    return WsSendText(
+        fd, message.dump(-1, ' ', false, Json::error_handler_t::replace));
+  };
+
+  try {
+    while (const std::optional<std::string> message = WsReadText(fd)) {
+      const std::string query =
+          Json::parse(*message).at("query").get<std::string>();
+
+      const std::vector<std::string> expanded = ollama_->Expand(query);
+      send({{"stage", "query_expansion"},
+            {"data", {{"original", query}, {"expanded_terms", expanded}}}});
+
+      std::vector<std::string> terms = Tokenize(query);
+      terms.insert(terms.end(), expanded.begin(), expanded.end());
+      const auto start = std::chrono::steady_clock::now();
+      const std::vector<SearchResult> results = engine_->Search(terms);
+      send({{"stage", "keyword_search"},
+            {"data",
+             {{"results", ToJson(results)}, {"time_ms", ElapsedMs(start)}}}});
+
+      send({{"stage", "done"}});
+    }
+  } catch (const Json::exception&) {
+  }
 }
