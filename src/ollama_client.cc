@@ -80,7 +80,8 @@ std::vector<std::string> OllamaClient::Expand(const std::string& query) {
   try {
     const std::string generated =
         Json::parse(*response).at("response").get<std::string>();
-    for (const Json& keyword : Json::parse(generated).at("keywords")) {
+    const Json keywords = Json::parse(generated).at("keywords");
+    for (const Json& keyword : keywords) {
       for (const std::string& term : Tokenize(keyword.get<std::string>())) {
         if (terms.size() < kMaxExpandedTerms &&
             std::find(terms.begin(), terms.end(), term) == terms.end()) {
