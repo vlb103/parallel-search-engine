@@ -4,6 +4,8 @@
 
 ## Запуск
 
+Потрібен Docker з Compose v2 і щонайменше 8 ГБ пам'яті для Docker. Для консольного клієнта і бенчмарків потрібен Python 3.
+
 ```bash
 docker compose up --build
 ```
@@ -42,6 +44,12 @@ curl -X POST http://localhost:8080/api/search -d '{"query": {"text": "moon landi
 docker compose run --rm dataset python check_dataset.py /data
 ```
 
+## Архітектура
+
+![Діаграма розгортання](docs/uml/deployment.png)
+
+Решта діаграм (варіанти використання, класи, послідовності) лежить у [docs/uml](docs/uml).
+
 ## Тести
 
 Тест на гонки для індексу і пулу потоків працює під ThreadSanitizer. Якщо гонок немає, він друкує `OK`.
@@ -50,6 +58,8 @@ docker compose run --rm dataset python check_dataset.py /data
 docker build --target test -t search-test .
 docker run --rm --security-opt seccomp=unconfined search-test
 ```
+
+Тестові запити з очікуваними й фактичними результатами наведено в [docs/test_cases.md](docs/test_cases.md).
 
 ## Бенчмарки
 
@@ -81,4 +91,16 @@ WebSocket `/ws/search` приймає `{"query": "..."}` і відповідає
 {"stage": "query_expansion", "data": {"original": "...", "expanded_terms": ["..."]}}
 {"stage": "keyword_search", "data": {"results": [...], "time_ms": 12}}
 {"stage": "done"}
+```
+
+## Структура
+
+```
+src/       сервер на C++
+web/       веб-сторінка
+search     консольний клієнт
+scripts/   підготовка й перевірка датасету
+tests/     тест на гонки
+bench/     бенчмарки
+docs/      UML-діаграми і тестові запити
 ```
