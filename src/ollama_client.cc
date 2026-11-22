@@ -20,6 +20,7 @@ using Json = nlohmann::json;
 const int kTimeoutSeconds = 120;
 const size_t kReadChunkSize = 4096;
 const size_t kMaxExpandedTerms = 8;
+const int kMaxGeneratedTokens = 64;
 const char kHeaderEnd[] = "\r\n\r\n";
 const char kPrompt[] =
     "You expand search queries for a keyword search engine over English "
@@ -62,11 +63,12 @@ bool OllamaClient::IsAvailable() const {
 }
 
 std::vector<std::string> OllamaClient::Expand(const std::string& query) {
-  const Json body = {{"model", model_},
-                     {"prompt", kPrompt + query},
-                     {"stream", false},
-                     {"format", "json"},
-                     {"options", {{"temperature", 0}}}};
+  const Json body = {
+      {"model", model_},
+      {"prompt", kPrompt + query},
+      {"stream", false},
+      {"format", "json"},
+      {"options", {{"temperature", 0}, {"num_predict", kMaxGeneratedTokens}}}};
   std::optional<std::string> response;
   {
     std::lock_guard<std::mutex> lock(generate_mutex_);
