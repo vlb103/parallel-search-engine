@@ -1,4 +1,11 @@
 services:
+  dataset:
+    build:
+      context: .
+      target: dataset
+    volumes:
+      - dataset:/data
+
   server:
     build: .
     init: true
@@ -11,9 +18,12 @@ services:
       OLLAMA_PORT: 11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
     volumes:
-      - ./data:/data:ro
+      - dataset:/data:ro
     depends_on:
-      - ollama
+      dataset:
+        condition: service_completed_successfully
+      ollama:
+        condition: service_started
 
   ollama:
     image: ollama/ollama
@@ -31,3 +41,4 @@ services:
 
 volumes:
   ollama:
+  dataset:
