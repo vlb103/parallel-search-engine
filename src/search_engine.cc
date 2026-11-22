@@ -1,5 +1,7 @@
 #include "search_engine.h"
 
+#include <malloc.h>
+
 #include <algorithm>
 #include <cctype>
 #include <chrono>
@@ -35,6 +37,7 @@ std::optional<IndexStats> SearchEngine::BuildIndex(size_t threads) {
     documents_.clear();
     documents_indexed_ = 0;
   }
+  malloc_trim(0);
 
   const auto start = std::chrono::steady_clock::now();
 
