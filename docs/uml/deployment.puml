@@ -1,31 +1,35 @@
 @startuml deployment
 !include style.iuml
-left to right direction
-skinparam nodesep 40
-skinparam ranksep 110
+skinparam nodesep 50
+skinparam ranksep 70
 
 node "Комп'ютер користувача" {
-  together {
-    artifact "Браузер (Web UI)" as Browser
-    artifact "CLI ./search" as Cli
-    folder "./data\n(датасет)" as Data
-  }
+  artifact "Браузер (Web UI)" as Browser
+  artifact "CLI ./search" as Cli
 
   node "Docker Compose (мережа default)" {
     node "контейнер server\n(debian:bookworm-slim)" as ServerNode {
       artifact "search_server\n:8080" as App
       artifact "web/index.html" as Page
     }
+    node "контейнер dataset\n(python:3.12-slim)" as DatasetNode {
+      artifact "prepare_dataset.py" as Prepare
+    }
     node "контейнер ollama\n(ollama/ollama)" as OllamaNode {
       artifact "ollama serve\n:11434" as OllamaApp
     }
-    database "том ollama\n(модель llama3.2:1b)" as Volume
+    database "том dataset\n(статті Wikipedia)" as DataVolume
+    database "том ollama\n(модель llama3.2:1b)" as ModelVolume
   }
 }
 
+cloud "Hugging Face\nwikimedia/wikipedia" as HuggingFace
+
 Browser --> ServerNode : HTTP, WebSocket\nlocalhost:8080
 Cli --> ServerNode : HTTP\nlocalhost:8080
-Data <.. ServerNode : /data\n(лише читання)
 ServerNode --> OllamaNode : HTTP\nollama:11434
-OllamaNode ..> Volume : /root/.ollama
+ServerNode ..> DataVolume : /data\n(лише читання)
+DatasetNode ..> DataVolume : /data
+OllamaNode ..> ModelVolume : /root/.ollama
+DatasetNode --> HuggingFace : HTTPS\n(перший запуск)
 @enduml

@@ -11,6 +11,7 @@ box "search_server" #FAFAFA
   participant "Worker" as Worker
   participant "WebSocket" as Ws
   participant "OllamaClient" as OllamaClient
+  participant "Tokenizer" as Tokenizer
   participant "SearchEngine" as Engine
   participant "ConcurrentIndex" as Index
 end box
@@ -41,9 +42,11 @@ deactivate OllamaClient
 Worker -> Ws : WsSendText()
 Ws --> Ui : {"stage":"query_expansion",\n"data":{"original":..,"expanded_terms":[..]}}
 
-Worker -> Engine : Search(терміни запиту + розширені)
+Worker -> Tokenizer : Tokenize(query)
+Tokenizer --> Worker : terms
+Worker -> Engine : Search(terms + expanded_terms)
 activate Engine
-loop для кожного терміна
+loop для кожного унікального терміна
   Engine -> Index : Find(term)
   Index --> Engine : копія postings
 end

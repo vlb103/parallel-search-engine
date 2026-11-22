@@ -133,6 +133,7 @@ Server o--> "1" OllamaClient
 Server ..> ThreadPool : пул клієнтів
 Server ..> Http
 Server ..> WebSocket
+Server ..> Tokenizer
 Http ..> HttpRequest
 WebSocket ..> Http
 

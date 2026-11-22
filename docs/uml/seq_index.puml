@@ -29,6 +29,8 @@ alt побудова вже триває (build_mutex_.try_lock() не вдав�
   Worker --> Client : 409 {"error":"indexing already in progress"}
 else build_mutex_ захоплено
   Engine -> Index : Clear()
+  Engine -> Engine : malloc_trim(0)
+  note right : повернути звільнену\nпам'ять системі
   Engine -> Engine : зібрати і відсортувати\nсписок файлів (documents_)
   Engine -> IndexPool ** : ThreadPool(N)
   loop для кожного документа
