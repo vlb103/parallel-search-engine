@@ -2,6 +2,7 @@
 #define SRC_SERVER_H_
 
 #include <cstddef>
+#include <string>
 
 #include "http.h"
 #include "ollama_client.h"
@@ -26,6 +27,7 @@ class Server {
   OllamaClient* ollama_;
   int port_;
   size_t thread_count_;
+  std::string index_page_;
 };
 
 #endif  // SRC_SERVER_H_

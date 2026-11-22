@@ -10,7 +10,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <string>
@@ -60,7 +62,11 @@ Server::Server(SearchEngine* engine, OllamaClient* ollama, int port,
     : engine_(engine),
       ollama_(ollama),
       port_(port),
-      thread_count_(thread_count) {}
+      thread_count_(thread_count) {
+  std::ifstream file("web/index.html");
+  index_page_.assign(std::istreambuf_iterator<char>(file),
+                     std::istreambuf_iterator<char>());
+}
 
 void Server::Run() {
   const int listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -100,7 +106,9 @@ void Server::HandleClient(int fd) {
   const std::string& method = request->method;
   const std::string& path = request->path;
   try {
-    if (method == "GET" && path == "/api/health") {
+    if (method == "GET" && path == "/") {
+      SendResponse(fd, 200, "text/html; charset=utf-8", index_page_);
+    } else if (method == "GET" && path == "/api/health") {
       HandleHealth(fd);
     } else if (method == "POST" && path == "/api/index") {
       HandleIndex(fd, *request);

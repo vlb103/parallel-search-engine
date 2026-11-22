@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parallel Search</title>
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; color: #222; }
+    main { max-width: 800px; margin: 0 auto; padding: 16px; }
+    form { display: flex; gap: 8px; }
+    #query { flex: 1; padding: 8px; font-size: 16px; }
+    button { padding: 8px 16px; font-size: 16px; }
+    #pipeline {
+      display: flex;
+      gap: 8px;
+      padding: 0;
+      margin: 16px 0;
+      list-style: none;
+    }
+    #pipeline li {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      background: #e5e5e5;
+      color: #666;
+      text-align: center;
+    }
+    #pipeline li.active { background: #fde68a; color: #222; }
+    #pipeline li.finished { background: #86efac; color: #222; }
+    .time { font-size: 13px; }
+    .term {
+      display: inline-block;
+      margin: 0 6px 6px 0;
+      padding: 2px 10px;
+      border-radius: 12px;
+      background: #dbeafe;
+    }
+    .score { color: #888; }
+    #results li { margin-bottom: 12px; }
+    #results p { margin: 4px 0 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Parallel Search</h1>
+
+    <form id="search-form">
+      <input id="query" type="text" placeholder="Search query" required autofocus>
+      <button id="submit" type="submit">Search</button>
+    </form>
+
+    <ol id="pipeline">
+      <li data-stage="query_expansion">Query expansion <span class="time"></span></li>
+      <li data-stage="keyword_search">Keyword search <span class="time"></span></li>
+      <li data-stage="done">Done <span class="time"></span></li>
+    </ol>
+
+    <p id="terms"></p>
+    <p id="status"></p>
+    <ol id="results"></ol>
+  </main>
+</body>
+</html>
