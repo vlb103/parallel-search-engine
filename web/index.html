@@ -59,5 +59,88 @@
     <p id="status"></p>
     <ol id="results"></ol>
   </main>
+  <script>
+    const STAGES = ["query_expansion", "keyword_search", "done"];
+    const form = document.getElementById("search-form");
+    const terms = document.getElementById("terms");
+    const status = document.getElementById("status");
+    const results = document.getElementById("results");
+
+    function stageElement(stage) {
+      return document.querySelector(`[data-stage="${stage}"]`);
+    }
+
+    function resetPage() {
+      for (const stage of STAGES) {
+        stageElement(stage).className = "";
+        stageElement(stage).querySelector(".time").textContent = "";
+      }
+      terms.replaceChildren();
+      results.replaceChildren();
+      status.textContent = "";
+    }
+
+    function finishStage(stage, startedAt) {
+      const element = stageElement(stage);
+      element.className = "finished";
+      element.querySelector(".time").textContent =
+          `${Math.round(performance.now() - startedAt)} ms`;
+      const next = STAGES[STAGES.indexOf(stage) + 1];
+      if (next) stageElement(next).className = "active";
+    }
+
+    function showTerms(data) {
+      for (const term of data.expanded_terms) {
+        const label = document.createElement("span");
+        label.className = "term";
+        label.textContent = term;
+        terms.append(label);
+      }
+      if (data.expanded_terms.length === 0) {
+        terms.textContent = "No expansion (LLM unavailable)";
+      }
+    }
+
+    function showResults(data) {
+      for (const result of data.results) {
+        const item = document.createElement("li");
+        const title = document.createElement("strong");
+        title.textContent = result.doc_id;
+        const score = document.createElement("span");
+        score.className = "score";
+        score.textContent = ` ${result.score.toFixed(3)}`;
+        const snippet = document.createElement("p");
+        snippet.textContent = result.snippet;
+        item.append(title, score, snippet);
+        results.append(item);
+      }
+      status.textContent =
+          `${data.results.length} results, index search took ${data.time_ms} ms`;
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      resetPage();
+      const query = document.getElementById("query").value;
+      const socket = new WebSocket(`ws://${location.host}/ws/search`);
+      let startedAt = 0;
+
+      socket.onopen = () => {
+        startedAt = performance.now();
+        stageElement(STAGES[0]).className = "active";
+        socket.send(JSON.stringify({ query }));
+      };
+      socket.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        finishStage(message.stage, startedAt);
+        if (message.stage === "query_expansion") showTerms(message.data);
+        if (message.stage === "keyword_search") showResults(message.data);
+        if (message.stage === "done") socket.close();
+      };
+      socket.onerror = () => {
+        status.textContent = "Connection error";
+      };
+    });
+  </script>
 </body>
 </html>
