@@ -42,6 +42,26 @@ curl -X POST http://localhost:8080/api/search -d '{"query": {"text": "moon landi
 docker compose run --rm dataset python check_dataset.py /data
 ```
 
+## Тести
+
+Тест на гонки для індексу і пулу потоків працює під ThreadSanitizer. Якщо гонок немає, він друкує `OK`.
+
+```bash
+docker build --target test -t search-test .
+docker run --rm --security-opt seccomp=unconfined search-test
+```
+
+## Бенчмарки
+
+Потрібні Python 3 і `pip install -r bench/requirements.txt`. Сервер має працювати, а для пошуку індекс має бути побудований.
+
+```bash
+python bench/bench_index.py --threads 1 2 4 8 16 32
+python bench/bench_search.py
+```
+
+CSV і графіки записуються в `bench/results/`.
+
 ## API
 
 | Ендпоінт | Тіло запиту | Відповідь 200 |
