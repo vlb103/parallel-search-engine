@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <exception>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -123,6 +124,8 @@ void Server::HandleClient(int fd) {
     }
   } catch (const Json::exception& error) {
     SendError(fd, 400, error.what());
+  } catch (const std::exception& error) {
+    SendError(fd, 500, error.what());
   }
 }
 
