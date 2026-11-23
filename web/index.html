@@ -5,27 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Parallel Search</title>
   <style>
-    :root { color-scheme: dark; }
+    :root { color-scheme: dark; --box: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M1 1h7v7H1zM2 2v5h5V2z'/></svg>"); --hourglass: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M1 1h7v1H1zM2 2h5v1H2zM3 3h3v1H3zM4 4h1v1H4zM3 5h1v1H3zM5 5h1v1H5zM2 6h1v1H2zM4 6h1v1H4zM6 6h1v1H6zM1 7h7v1H1z'/></svg>"); --check: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M7 2h1v1H7zM6 3h2v1H6zM1 4h1v1H1zM5 4h2v1H5zM1 5h2v1H1zM4 5h2v1H4zM2 6h3v1H2zM3 7h1v1H3z'/></svg>"); }
     ::selection { background: #fff; color: #000; }
     body { margin: 0; background: #000; color: #d4d4d4; font: 15px "Cascadia Mono", Consolas, ui-monospace, monospace; }
     main { max-width: 720px; margin: 64px auto; padding: 0 16px; }
-    h1 { margin: 0 0 32px; font-size: 18px; }
+    h1 { margin: 0; font-size: 18px; }
     h1, strong { font-weight: normal; color: #fff; }
     h1::after { content: ""; display: inline-block; width: 10px; height: 18px; margin-left: 6px; vertical-align: -3px; background: #fff; }
     form { display: flex; border: 1px solid #555; }
     form:focus-within { border-color: #fff; }
     form::before { content: ">"; padding: 12px 0 12px 14px; color: #999; }
     #query { flex: 1; padding: 12px 10px; border: none; outline: none; font: inherit; background: none; color: #fff; }
-    button { padding: 0 20px; border: none; background: #fff; color: #000; font-size: 0; cursor: pointer; }
-    button::before { content: ""; display: block; width: 18px; height: 18px; background: currentColor; mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M2 0h3v1H2zM1 1h1v1H1zM5 1h1v1H5zM0 2h1v3H0zM6 2h1v3H6zM1 5h1v1H1zM5 5h1v1H5zM2 6h3v1H2zM6 6h2v1H6zM6 7h3v1H6zM7 8h2v1H7z'/></svg>"); }
-    button:hover { background: #bbb; }
+    #submit { padding: 0 20px; border: none; background: #fff; color: #000; font-size: 0; cursor: pointer; }
+    #submit::before { content: ""; display: block; width: 18px; height: 18px; background: currentColor; mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M2 0h3v1H2zM1 1h1v1H1zM5 1h1v1H5zM0 2h1v3H0zM6 2h1v3H6zM1 5h1v1H1zM5 5h1v1H5zM2 6h3v1H2zM6 6h2v1H6zM6 7h3v1H6zM7 8h2v1H7z'/></svg>"); }
+    #submit:hover { background: #bbb; }
+    #submit:disabled { background: #333; cursor: default; }
     #pipeline { display: flex; gap: 6px; padding: 0; margin: 0 0 32px; list-style: none; color: #555; }
     #pipeline li { flex: 1; padding-top: 10px; border-top: 4px solid #222; font-size: 13px; transition: border-color 0.3s; }
-    #pipeline li::before { content: ""; display: inline-block; width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; background: currentColor; mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M1 1h7v7H1zM2 2v5h5V2z'/></svg>"); }
+    #pipeline li::before, #index-info::before { content: ""; display: inline-block; width: 18px; height: 18px; margin-right: 8px; vertical-align: -4px; background: currentColor; mask: var(--box); }
     #pipeline .active { border-color: #fff; color: #fff; }
-    #pipeline .active::before { mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M1 1h7v1H1zM2 2h5v1H2zM3 3h3v1H3zM4 4h1v1H4zM3 5h1v1H3zM5 5h1v1H5zM2 6h1v1H2zM4 6h1v1H4zM6 6h1v1H6zM1 7h7v1H1z'/></svg>"); animation: blink 1s steps(2) infinite; }
+    #pipeline .active::before, #index.building #index-info::before { mask-image: var(--hourglass); animation: blink 1s steps(2) infinite; }
     #pipeline .finished { border-color: #777; color: #999; }
-    #pipeline .finished::before { mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 9'><path d='M7 2h1v1H7zM6 3h2v1H6zM1 4h1v1H1zM5 4h2v1H5zM1 5h2v1H1zM4 5h2v1H4zM2 6h3v1H2zM3 7h1v1H3z'/></svg>"); }
+    #pipeline .finished::before, #index.ready #index-info::before { mask-image: var(--check); }
     @keyframes blink { 50% { opacity: 0; } }
     .time { margin-left: 8px; }
     .time, .score, .term::before, #status { color: #666; }
@@ -38,6 +39,13 @@
     #results { padding-left: 32px; list-style: decimal-leading-zero; color: #555; }
     #results li { margin-bottom: 24px; }
     #results p { margin: 4px 0 0; line-height: 1.6; color: #999; }
+    header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-bottom: 32px; }
+    #index { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: #666; white-space: nowrap; }
+    #index-info { flex: 1; }
+    #index.building #index-info { color: #fff; }
+    #threads, #build { padding: 4px 8px; border: 1px solid #555; background: #000; color: #fff; font: inherit; cursor: pointer; }
+    #build:hover { background: #fff; color: #000; }
+    #threads:disabled, #build:disabled { border-color: #333; color: #555; background: #000; cursor: default; }
     @media (max-width: 560px) {
       #pipeline li::before { display: block; margin-bottom: 6px; }
       #pipeline .time { display: block; margin: 2px 0 0; }
@@ -52,7 +60,21 @@
       <li data-stage="done">Done <span class="time"></span></li>
     </ol>
 
-    <h1>Parallel Search</h1>
+    <header>
+      <h1>Parallel Search</h1>
+      <section id="index">
+        <span id="index-info"></span>
+        <select id="threads">
+          <option value="1">1 thread</option>
+          <option value="2">2 threads</option>
+          <option value="4">4 threads</option>
+          <option value="8" selected>8 threads</option>
+          <option value="16">16 threads</option>
+          <option value="32">32 threads</option>
+        </select>
+        <button id="build" type="button">Build</button>
+      </section>
+    </header>
 
     <form id="search-form">
       <input id="query" type="text" placeholder="Search query" required autofocus>
@@ -145,6 +167,87 @@
         status.textContent = "Connection error";
       };
     });
+
+    const indexSection = document.getElementById("index");
+    const indexInfo = document.getElementById("index-info");
+    const threads = document.getElementById("threads");
+    const build = document.getElementById("build");
+    const queryInput = document.getElementById("query");
+    const submit = document.getElementById("submit");
+
+    function setIndexState(state, text) {
+      indexSection.className = state;
+      indexInfo.textContent = text;
+      threads.disabled = build.disabled = state === "building";
+      queryInput.disabled = submit.disabled = state !== "ready";
+      queryInput.placeholder =
+          state === "ready" ? "Search query" : "waiting for index…";
+    }
+
+    function startTimer(label) {
+      const startedAt = Date.now();
+      const update = () => {
+        const seconds = Math.round((Date.now() - startedAt) / 1000);
+        indexInfo.textContent = `${label} ${seconds} s`;
+      };
+      update();
+      return setInterval(update, 1000);
+    }
+
+    async function getStats() {
+      const response = await fetch("/api/stats");
+      return response.json();
+    }
+
+    async function showStats() {
+      const stats = await getStats();
+      if (stats.documents === 0) {
+        setIndexState("", "index is empty");
+        return;
+      }
+      const documents = stats.documents.toLocaleString("en-US");
+      const seconds = (stats.index_build_time_ms / 1000).toFixed(1);
+      setIndexState("ready",
+          `${documents} documents, ${seconds} s, ${stats.threads_used} threads`);
+    }
+
+    async function waitForOtherBuild() {
+      let previous = -1;
+      while (true) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const stats = await getStats();
+        if (stats.documents > 0 && stats.documents === previous) return;
+        previous = stats.documents;
+      }
+    }
+
+    build.addEventListener("click", async () => {
+      setIndexState("building", "");
+      let timer = startTimer("building…");
+      try {
+        const response = await fetch("/api/index", {
+          method: "POST",
+          body: JSON.stringify({ threads: Number(threads.value) }),
+        });
+        if (response.status === 400) {
+          clearInterval(timer);
+          setIndexState("", "invalid thread count");
+          return;
+        }
+        if (response.status === 409) {
+          clearInterval(timer);
+          timer = startTimer("indexing in another tab…");
+          await waitForOtherBuild();
+        }
+        clearInterval(timer);
+        await showStats();
+      } catch {
+        clearInterval(timer);
+        setIndexState("", "connection error");
+      }
+    });
+
+    showStats().catch(() => setIndexState("", "connection error"));
   </script>
 </body>
 </html>
