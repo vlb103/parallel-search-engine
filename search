@@ -1,23 +1,81 @@
 #!/usr/bin/env python3
 import argparse
+import base64
 import json
 import os
+import socket
 import sys
-import urllib.error
-import urllib.request
+import urllib.parse
 
 DEFAULT_URL = os.environ.get("SEARCH_URL", "http://localhost:8080")
+TIMEOUT_SECONDS = 150
 
 
-def search(base_url, text):
-    body = json.dumps({"query": {"text": text, "mode": "keyword"}}).encode()
-    request = urllib.request.Request(
-        base_url + "/api/search",
-        data=body,
-        headers={"Content-Type": "application/json"},
+def connect(base_url):
+    url = urllib.parse.urlsplit(base_url)
+    sock = socket.create_connection(
+        (url.hostname, url.port or 80), timeout=TIMEOUT_SECONDS
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        return json.load(response)
+    key = base64.b64encode(os.urandom(16)).decode()
+    sock.sendall(
+        (
+            "GET /ws/search HTTP/1.1\r\n"
+            f"Host: {url.netloc}\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            f"Sec-WebSocket-Key: {key}\r\n"
+            "Sec-WebSocket-Version: 13\r\n\r\n"
+        ).encode()
+    )
+    response = b""
+    while b"\r\n\r\n" not in response:
+        chunk = sock.recv(4096)
+        if not chunk:
+            raise ConnectionError("connection closed")
+        response += chunk
+    if b" 101 " not in response.split(b"\r\n", 1)[0]:
+        raise ConnectionError("websocket handshake failed")
+    return sock
+
+
+def send_text(sock, text):
+    payload = text.encode()
+    mask = os.urandom(4)
+    if len(payload) < 126:
+        header = bytes([0x81, 0x80 | len(payload)])
+    else:
+        header = bytes([0x81, 0x80 | 126]) + len(payload).to_bytes(2, "big")
+    masked = bytes(byte ^ mask[i % 4] for i, byte in enumerate(payload))
+    sock.sendall(header + mask + masked)
+
+
+def recv_exact(sock, size):
+    data = b""
+    while len(data) < size:
+        chunk = sock.recv(size - len(data))
+        if not chunk:
+            raise ConnectionError("connection closed")
+        data += chunk
+    return data
+
+
+def read_text(sock):
+    length = recv_exact(sock, 2)[1] & 0x7F
+    if length == 126:
+        length = int.from_bytes(recv_exact(sock, 2), "big")
+    elif length == 127:
+        length = int.from_bytes(recv_exact(sock, 8), "big")
+    return recv_exact(sock, length).decode()
+
+
+def print_results(data):
+    results = data["results"]
+    if not results:
+        print("No documents found.")
+    for number, result in enumerate(results, start=1):
+        print(f"{number}. [{result['score']:.3f}] {result['doc_id']}")
+        print(f"   {result['snippet']}")
+    print(f"\n{len(results)} results in {data['time_ms']} ms")
 
 
 def main():
@@ -28,17 +86,21 @@ def main():
     args = parser.parse_args()
 
     try:
-        answer = search(args.url, args.query)
-    except (urllib.error.URLError, OSError) as error:
+        sock = connect(args.url)
+        with sock:
+            send_text(sock, json.dumps({"query": args.query}))
+            while True:
+                message = json.loads(read_text(sock))
+                if message["stage"] == "query_expansion":
+                    terms = message["data"]["expanded_terms"]
+                    print("Expanded terms:", ", ".join(terms) or "none (LLM unavailable)")
+                    print()
+                elif message["stage"] == "keyword_search":
+                    print_results(message["data"])
+                else:
+                    break
+    except OSError as error:
         sys.exit(f"error: cannot reach {args.url}: {error}")
-
-    results = answer["results"]
-    if not results:
-        print("No documents found.")
-    for number, result in enumerate(results, start=1):
-        print(f"{number}. [{result['score']:.3f}] {result['doc_id']}")
-        print(f"   {result['snippet']}")
-    print(f"\n{len(results)} results in {answer['time_ms']} ms")
 
 
 if __name__ == "__main__":
