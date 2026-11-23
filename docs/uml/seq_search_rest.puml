@@ -1,10 +1,10 @@
 @startuml seq_search_rest
 !include style.iuml
 autonumber
-title UC4: Пошук за ключовими словами (CLI, REST)
+title UC4: Пошук за ключовими словами (REST)
 
 actor "Користувач" as User
-participant "CLI\n./search" as Cli
+participant "curl" as Cli
 box "search_server" #FAFAFA
   participant "Server\n(accept)" as Server
   queue "ThreadPool\nклієнтів" as Pool
@@ -14,7 +14,7 @@ box "search_server" #FAFAFA
   participant "ConcurrentIndex" as Index
 end box
 
-User -> Cli : ./search "query"
+User -> Cli : curl POST /api/search
 Cli -> Server : TCP connect
 Server -> Pool : Submit(HandleClient)
 Pool -> Worker : задача
@@ -41,5 +41,5 @@ else коректний запит
   Worker --> Cli : 200 {"results":[..],"time_ms":..}
 end
 deactivate Worker
-Cli --> User : нумерований список результатів
+Cli --> User : відповідь JSON
 @enduml

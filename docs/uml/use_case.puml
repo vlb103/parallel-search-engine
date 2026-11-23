@@ -11,8 +11,8 @@ rectangle "Пошукова система" {
   usecase "UC1: Перевірити стан системи" as UC1
   usecase "UC2: Побудувати індекс\n(задати кількість потоків)" as UC2
   usecase "UC3: Переглянути статистику індексу" as UC3
-  usecase "UC4: Пошук за ключовими словами\n(CLI, REST)" as UC4
-  usecase "UC5: Пошук з розширенням запиту\nі стрімінгом етапів (Web UI, WebSocket)" as UC5
+  usecase "UC4: Пошук за ключовими словами\n(REST)" as UC4
+  usecase "UC5: Пошук з розширенням запиту\nі стрімінгом етапів (Web UI, CLI, WebSocket)" as UC5
   usecase "Розширити запит через LLM" as Expand #E8F5E9;line:2E7D32
   usecase "Знайти документи в індексі" as Find #E8F5E9;line:2E7D32
 }

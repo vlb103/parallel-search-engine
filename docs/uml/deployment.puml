@@ -26,7 +26,7 @@ node "Комп'ютер користувача" {
 cloud "Hugging Face\nwikimedia/wikipedia" as HuggingFace
 
 Browser --> ServerNode : HTTP, WebSocket\nlocalhost:8080
-Cli --> ServerNode : HTTP\nlocalhost:8080
+Cli --> ServerNode : WebSocket\nlocalhost:8080
 ServerNode --> OllamaNode : HTTP\nollama:11434
 ServerNode ..> DataVolume : /data\n(лише читання)
 DatasetNode ..> DataVolume : /data
