@@ -28,7 +28,7 @@ docker compose run --rm dataset grep -rlwi zymurgy /data
 Тести 1–7 і 10, із заміною тексту запиту:
 
 ```bash
-curl -X POST http://localhost:8080/api/search -d '{"query": {"text": "zymurgy", "mode": "keyword"}}'
+curl -X POST http://localhost:8080/api/search -d '{"query": "zymurgy", "mode": "keyword"}'
 ```
 
 Тести 8 і 9 виконуються на http://localhost:8080. Для тесту 9 Ollama зупиняють командою `docker compose stop ollama`.

@@ -33,7 +33,7 @@ curl -X POST http://localhost:8080/api/index -d '{"threads": 8}'
 Через REST:
 
 ```bash
-curl -X POST http://localhost:8080/api/search -d '{"query": {"text": "moon landing", "mode": "keyword"}}'
+curl -X POST http://localhost:8080/api/search -d '{"query": "moon landing", "mode": "keyword"}'
 ```
 
 ## Дані
@@ -82,10 +82,10 @@ CSV і графіки записуються в `bench/results/`.
 |---|---|---|
 | `GET /api/health` | - | `{"status": "ok", "ollama": true}` |
 | `POST /api/index` | `{"threads": 4}` | `{"status": "ok", "documents_indexed": 2000, "time_ms": 1234}` |
-| `POST /api/search` | `{"query": {"text": "...", "mode": "keyword"}}` | `{"results": [{"doc_id": "...", "score": 0.95, "snippet": "..."}], "time_ms": 56}` |
+| `POST /api/search` | `{"query": "...", "mode": "keyword"}` | `{"results": [{"doc_id": "...", "score": 0.95, "snippet": "..."}], "time_ms": 56}` |
 | `GET /api/stats` | - | `{"documents": 2000, "index_build_time_ms": 1234, "threads_used": 4}` |
 
-`POST /api/search` приймає і `{"query": "...", "mode": "keyword"}`. Інших режимів, крім `keyword`, немає.
+`POST /api/search` приймає і `{"query": {"text": "...", "mode": "keyword"}}`. Інших режимів, крім `keyword`, немає.
 
 WebSocket `/ws/search` приймає `{"query": "..."}` і на кожен запит відповідає трьома повідомленнями. В одному з'єднанні можна надіслати кілька запитів.
 
@@ -98,7 +98,7 @@ WebSocket `/ws/search` приймає `{"query": "..."}` і на кожен за
 | Поле | Тип | Значення |
 |---|---|---|
 | `threads` | integer | кількість потоків індексації, від 1 до 256 |
-| `query` | string або object | текст запиту, або `{"text": string, "mode": string}` у `/api/search` |
+| `query` | string | текст запиту, у `/api/search` також object `{"text": string, "mode": string}` |
 | `mode` | string | лише `"keyword"` |
 | `status` | string | `"ok"` |
 | `ollama` | boolean | чи відповідає Ollama |
