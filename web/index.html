@@ -144,11 +144,17 @@
           `${data.results.length} results, index search took ${data.time_ms} ms`;
     }
 
+    let socket = null;
+
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (socket) {
+        socket.onmessage = socket.onerror = null;
+        socket.close();
+      }
       resetPage();
       const query = document.getElementById("query").value;
-      const socket = new WebSocket(`ws://${location.host}/ws/search`);
+      socket = new WebSocket(`ws://${location.host}/ws/search`);
       let startedAt = 0;
 
       socket.onopen = () => {
