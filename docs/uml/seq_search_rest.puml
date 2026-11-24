@@ -19,7 +19,7 @@ Cli -> Server : TCP connect
 Server -> Pool : Submit(HandleClient)
 Pool -> Worker : задача
 activate Worker
-Cli -> Worker : POST /api/search\n{"query":{"text":"..","mode":"keyword"}}
+Cli -> Worker : POST /api/search\n{"query":"..","mode":"keyword"}
 Worker -> Worker : ReadRequest(), розбір JSON
 
 alt mode не "keyword" або невалідний JSON
