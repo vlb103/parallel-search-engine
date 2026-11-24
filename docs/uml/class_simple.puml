@@ -1,0 +1,68 @@
+@startuml class_simple
+!include style.iuml
+skinparam classAttributeIconSize 0
+skinparam nodesep 50
+skinparam ranksep 50
+hide empty members
+hide circle
+
+class Server {
+  - thread_count_ : size_t
+  + Run()
+  - HandleClient(fd)
+  - HandleWebSocket(fd, request)
+}
+
+class OllamaClient <<thread-safe>> {
+  - generate_mutex_ : mutex
+  + IsAvailable() : bool
+  + Expand(query) : vector<string>
+}
+
+class SearchEngine <<thread-safe>> {
+  - documents_mutex_ : shared_mutex
+  - build_mutex_ : mutex
+  - documents_indexed_ : atomic<size_t>
+  + BuildIndex(threads) : optional<IndexStats>
+  + Search(terms) : vector<SearchResult>
+  + Stats() : IndexStats
+}
+
+class ThreadPool <<thread-safe>> {
+  - mutex_ : mutex
+  - has_work_ : condition_variable
+  - tasks_ : queue<task>
+  + Submit(task)
+  + Shutdown()
+}
+
+class ConcurrentIndex <<thread-safe>> {
+  + Add(term, posting)
+  + Find(term) : vector<Posting>
+  + Clear()
+}
+
+class Segment <<struct>> {
+  + mutex : shared_mutex
+  + buckets : хеш-таблиця term → postings
+}
+
+class Posting <<struct>> {
+  + doc_id : uint32_t
+  + tf : uint32_t
+}
+
+class Tokenizer <<utility>> {
+  + Tokenize(text) : vector<string>
+}
+
+Server o--> "1" SearchEngine
+Server o--> "1" OllamaClient
+Server ..> ThreadPool : пул клієнтів
+Server ..> Tokenizer
+SearchEngine ..> ThreadPool : пул індексації
+SearchEngine *-- "1" ConcurrentIndex
+SearchEngine ..> Tokenizer
+ConcurrentIndex *-- "64" Segment
+Segment *-- "*" Posting
+@enduml
